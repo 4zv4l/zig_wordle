@@ -2,26 +2,24 @@ const std = @import("std");
 const mem = std.mem;
 const eprint = std.debug.print;
 
-fn getSecretFromFile(allocator: mem.Allocator, path: []const u8) ![5]u8 {
-    const file_content = try std.fs.cwd().readFileAlloc(allocator, path, std.math.maxInt(usize));
-    defer allocator.free(file_content);
-    if (file_content.len == 0) return error.FileIsEmpty;
+const embedded_words = @embedFile("words.txt");
 
+fn getSecret(raw_words: []const u8) ?[5]u8 {
     const nlines = blk: {
-        const lines = mem.count(u8, file_content, "\n");
+        const lines = mem.count(u8, raw_words, "\n");
         break :blk if (lines == 0) 1 else lines;
     };
 
     const secret = blk: {
         for (0..10) |_| {
             const rand_line = std.crypto.random.intRangeAtMost(usize, 1, nlines);
-            var line_it = mem.splitScalar(u8, file_content, '\n');
+            var line_it = mem.splitScalar(u8, raw_words, '\n');
             for (1..rand_line) |_| _ = line_it.next() orelse continue;
 
             const secret = mem.trim(u8, line_it.next() orelse continue, "-_\r\n\t. ");
             if (secret.len == 5 and !mem.containsAtLeast(u8, secret, 1, "-_\r\n\t. ")) break :blk secret;
         }
-        return error.WrongFileFormat;
+        return null;
     };
 
     return secret[0..5].*;
@@ -76,7 +74,14 @@ pub fn main() !void {
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    if (args.len != 2) return eprint("usage: {s} [file]\n", .{args[0]});
+
+    const secret = blk: {
+        if (args.len < 2) break :blk getSecret(embedded_words).?;
+        const file_content = try std.fs.cwd().readFileAlloc(allocator, args[1], std.math.maxInt(usize));
+        defer allocator.free(file_content);
+        if (file_content.len == 0) return error.FileIsEmpty;
+        break :blk getSecret(file_content) orelse return error.WrongFileFormat;
+    };
 
     eprint(
         \\Rules:
@@ -91,6 +96,5 @@ pub fn main() !void {
         \\
     , .{});
 
-    const secret = try getSecretFromFile(allocator, args[1]);
     try guess(&secret);
 }
