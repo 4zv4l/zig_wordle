@@ -6,6 +6,8 @@ simple wordle game made in Zig
 
 Simply provide a file with the words (of length 5).
 
+Otherwise the embedded list will be used.
+
 ```
 Rules:
   - You have 5 guesses
