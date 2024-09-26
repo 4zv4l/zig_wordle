@@ -18,8 +18,8 @@ fn getSecretFromFile(allocator: mem.Allocator, path: []const u8) ![5]u8 {
             var line_it = mem.splitScalar(u8, file_content, '\n');
             for (1..rand_line) |_| _ = line_it.next() orelse continue;
 
-            const secret = mem.trim(u8, line_it.next() orelse continue, "-\r\n\t ");
-            if (secret.len == 5 and !mem.containsAtLeast(u8, secret, 1, "-\r\n\t ")) break :blk secret;
+            const secret = mem.trim(u8, line_it.next() orelse continue, "-_\r\n\t. ");
+            if (secret.len == 5 and !mem.containsAtLeast(u8, secret, 1, "-_\r\n\t. ")) break :blk secret;
         }
         return error.WrongFileFormat;
     };
@@ -66,7 +66,7 @@ fn guess(secret: []const u8) !void {
         }
 
         tries -= 1;
-    } else eprint("Too bad...\n", .{});
+    } else eprint("Too bad...the secret was: {s}\n", .{secret});
 }
 
 pub fn main() !void {
